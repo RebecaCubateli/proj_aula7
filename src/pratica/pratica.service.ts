@@ -1,127 +1,131 @@
-// import { Injectable } from '@nestjs/common';
-
-// @Injectable()
-// export class PraticaService {}
-
 import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { Pratica } from './pratica.model';
 
 @Injectable()
 export class PraticaService {
 
-  private praticas: Pratica[] = [];
+  constructor(
+    @InjectModel(Pratica.name)
+    private praticaModel: Model<Pratica>,
+  ) {}
 
-  cadastrar(pratica: Pratica) {
-    this.praticas.push(pratica);
+  async cadastrar(pratica: Pratica) {
+
+    const novaPratica =
+      new this.praticaModel(pratica);
+
+    await novaPratica.save();
 
     return {
       mensagem: 'Prática cadastrada com sucesso!',
-      pratica,
+      pratica: novaPratica,
     };
   }
 
-  listar(
+  async listar(
     nomeUsuario?: string,
     tipo?: string,
     dataInicial?: string,
     dataFinal?: string,
   ) {
 
-    let resultado = this.praticas;
+    const filtro: any = {};
 
     if (nomeUsuario) {
-      resultado = resultado.filter(
-        p => p.nomeUsuario === nomeUsuario
-      );
+      filtro.nomeUsuario = nomeUsuario;
     }
 
     if (tipo) {
-      resultado = resultado.filter(
-        p => p.tipo === tipo
-      );
+      filtro.tipo = tipo;
     }
 
     if (dataInicial && dataFinal) {
-      resultado = resultado.filter(
-        p =>
-          p.data >= dataInicial &&
-          p.data <= dataFinal
-      );
+      filtro.data = {
+        $gte: dataInicial,
+        $lte: dataFinal,
+      };
     }
 
-    return resultado;
+    return await this.praticaModel.find(filtro);
+
   }
 
-    estatisticas() {
+  async estatisticas() {
 
-    const totalPraticas = this.praticas.length;
+    const praticas =
+      await this.praticaModel.find();
+
+    const totalPraticas =
+      praticas.length;
 
     if (totalPraticas === 0) {
-        return {
-        mensagem: 'Nenhuma prática cadastrada'
-        };
+      return {
+        mensagem:
+        'Nenhuma prática cadastrada'
+      };
     }
 
     const tipos = {};
     const usuarios = {};
 
-    this.praticas.forEach(p => {
+    praticas.forEach(p => {
 
-        tipos[p.tipo] =
-        (tipos[p.tipo] || 0) + 1;
+      tipos[p.tipo] =
+      (tipos[p.tipo] || 0) + 1;
 
-        usuarios[p.nomeUsuario] =
-        (usuarios[p.nomeUsuario] || 0) + 1;
+      usuarios[p.nomeUsuario] =
+      (usuarios[p.nomeUsuario] || 0) + 1;
 
     });
 
     const praticaMaisComum =
-        Object.keys(tipos)
-        .reduce((a,b)=>
-        tipos[a] > tipos[b] ? a : b);
+      Object.keys(tipos)
+      .reduce((a,b)=>
+      tipos[a] > tipos[b] ? a : b);
 
     const usuarioMaisAtivo =
-        Object.keys(usuarios)
-        .reduce((a,b)=>
-        usuarios[a] > usuarios[b] ? a : b);
+      Object.keys(usuarios)
+      .reduce((a,b)=>
+      usuarios[a] > usuarios[b] ? a : b);
 
     const hoje = new Date();
 
     const ultimos30Dias =
-        this.praticas.filter(p=>{
+      praticas.filter(p=>{
 
-        const dataPratica =
-            new Date(p.data);
+      const dataPratica =
+      new Date(p.data);
 
-        const diferenca =
-        (hoje.getTime()
-        -dataPratica.getTime())
-        /(1000*60*60*24);
+      const diferenca =
+      (hoje.getTime()
+      - dataPratica.getTime())
+      /(1000*60*60*24);
 
-        return diferenca <=30;
+      return diferenca <=30;
 
-        });
+    });
 
     const mediaDiaria =
-        ultimos30Dias.length/30;
+      ultimos30Dias.length / 30;
 
     return {
 
-        tipoMaisRegistrado:
-        praticaMaisComum,
+      tipoMaisRegistrado:
+      praticaMaisComum,
 
-        usuarioMaisAtivo:
-        usuarioMaisAtivo,
+      usuarioMaisAtivo:
+      usuarioMaisAtivo,
 
-        totalPorTipo:
-        tipos,
+      totalPorTipo:
+      tipos,
 
-        totalPraticas,
+      totalPraticas,
 
-        mediaDiariaUltimos30Dias:
-        mediaDiaria.toFixed(2)
+      mediaDiariaUltimos30Dias:
+      mediaDiaria.toFixed(2)
 
     };
-
-    }
+  }
 }
