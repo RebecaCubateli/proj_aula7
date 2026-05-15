@@ -41,7 +41,7 @@
 
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-//import { MongooseModule } from '@nestjs/mongoose';
+import { MongooseModule } from '@nestjs/mongoose';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -53,7 +53,9 @@ import { PraticaModule } from './pratica/pratica.module';
       isGlobal: true,
     }),
 
-    //MongooseModule.forRoot('mongodb+srv://rebeca:040927@cluster0.hw05mxq.mongodb.net/proj_aula7?retryWrites=true&w=majority&appName=Cluster0'),
+    MongooseModule.forRoot(
+      process.env.MONGO_URI!,
+    ),
 
     PraticaModule,
   ],
